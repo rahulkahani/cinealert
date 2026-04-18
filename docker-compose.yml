@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  cinealert:
+    build: .
+    container_name: cinealert
+    restart: unless-stopped
+    environment:
+      - EMAIL=your-email@gmail.com
+      - PASSWORD=your-gmail-app-password
+      - PHONE=5551234567:Rogers
+    volumes:
+      - ./state.json:/app/state.json
+      - ./logs:/app/logs

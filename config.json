@@ -1,0 +1,18 @@
+{
+  "theatre": "cineplex-cinemas-vaughan",
+  "theatre_display_name": "Cineplex Vaughan",
+  "target_formats": ["IMAX", "70MM"],
+  "poll_interval_minutes": 15,
+  "movies": [
+    {
+      "slug": "the-odyssey",
+      "name": "The Odyssey",
+      "ticket_url": "https://www.cineplex.com/movie/the-odyssey?openTM=true"
+    },
+    {
+      "slug": "dune-part-3",
+      "name": "Dune: Part 3",
+      "ticket_url": "https://www.cineplex.com/movie/dune-part-3?openTM=true"
+    }
+  ]
+}
