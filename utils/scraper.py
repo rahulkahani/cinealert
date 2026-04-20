@@ -1,5 +1,7 @@
 """Cineplex page scraper — extracts __NEXT_DATA__ from movie pages."""
 
+from __future__ import annotations
+
 import json
 import logging
 import random
