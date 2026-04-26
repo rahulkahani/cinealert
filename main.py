@@ -1,5 +1,6 @@
 """CineAlert — monitors Cineplex for IMAX 70mm ticket availability."""
 
+import argparse
 import json
 import logging
 import sys
@@ -92,23 +93,44 @@ def check_movie(movie: dict, config: dict, state: dict) -> None:
                 logger.info("Showtime alert sent for %s", name)
 
 
+def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description="CineAlert — IMAX 70mm ticket monitor")
+    parser.add_argument("--demo", action="store_true", help="Demo mode: simulate tickets found and send real SMS")
+    return parser.parse_args()
+
+
 def main() -> None:
     """Main entry point — check all configured movies."""
+    args = parse_args()
     setup_logging()
     logger = logging.getLogger(__name__)
     logger.info("=" * 50)
-    logger.info("CineAlert starting check cycle")
 
     config = load_config()
-    state = load_state()
 
-    for movie in config["movies"]:
-        try:
-            check_movie(movie, config, state)
-        except Exception:
-            logger.exception("Unexpected error checking %s", movie.get("slug", "?"))
+    if args.demo:
+        logger.info("CineAlert starting check cycle (DEMO MODE)")
+        for movie in config["movies"]:
+            name = movie["name"]
+            slug = movie["slug"]
+            logger.info("Checking: %s (%s)", name, slug)
+            logger.info("DEMO: Simulating IMAX 70mm tickets found for %s", name)
+            send_sms(
+                movie_name=name,
+                theatre_display_name=config["theatre_display_name"],
+                ticket_url=movie["ticket_url"],
+            )
+    else:
+        logger.info("CineAlert starting check cycle")
+        state = load_state()
+        for movie in config["movies"]:
+            try:
+                check_movie(movie, config, state)
+            except Exception:
+                logger.exception("Unexpected error checking %s", movie.get("slug", "?"))
+        save_state(state)
 
-    save_state(state)
     logger.info("Check cycle complete.")
     logger.info("=" * 50)
 
