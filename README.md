@@ -1,66 +1,103 @@
-# Cineplex Notifier
+# CineAlert — Cineplex showtime release watcher
 
-Cineplex Notifier is a Python application that allows you to receive alerts when ticket booking starts for upcoming movies at Cineplex. By providing the movie URL and your phone number, it sends you notifications to keep you informed about the ticket availability.
+Watches Cineplex for **new showtime releases** and **seats coming back on
+sold-out shows**, and alerts you within minutes. Configured out of the box
+for **Dune: Part Three in IMAX 70mm at Cineplex Cinemas Vaughan**
+(opens Dec 18, 2026 — the first wave of 70mm showtimes sold out almost
+instantly, and more dates are expected to drop without warning).
 
-## Features
+## How it works
 
-- Receive timely alerts when ticket booking starts for your desired movie at Cineplex.
-- Easily configurable through environment variables.
-- Dockerized for easy deployment and usage.
+Every **5 minutes** (cron inside the container):
 
-## Prerequisites
+1. Queries the same showtimes API the cineplex.com website uses
+   (`apis.cineplex.com`), for every date in your watch window. The API URL,
+   subscription key and theatre `locationId` are **auto-discovered** on the
+   first run by loading the theatre page in headless Chrome and capturing
+   the network call the page makes — so key rotations or ID changes heal
+   themselves. If plain API calls ever get blocked, it falls back to
+   fetching from inside the browser page.
+2. Keeps only sessions matching your film (`FILM_KEYWORD=dune`) and
+   experience (`EXPERIENCE_KEYWORDS=70mm`, which matches "IMAX 70MM FILM").
+3. Diffs against the previous run (state is persisted in `./state`):
+   - **new showtimes released** → alert
+   - **previously sold-out show has seats again** → alert
+   - nothing changed → stays silent
+4. Alerts carry a **direct booking deep link per showtime** that opens the
+   seat-selection page on cineplex.com (and is understood by the Cineplex
+   app on phones):
+   `https://apis.cineplex.com/prod/cpx/theatrical/deeplink?s=<session>&a=0000000001&l=<location>&m=dune-part-three&ss=False`
 
-Before running the Cineplex Notifier application, ensure that you have the following prerequisites installed:
+On its very first successful run it emails you a **baseline** listing the
+currently posted 70mm showtimes (even the sold-out ones) — that's your
+end-to-end confirmation that detection works.
 
-- Make
-- Docker
+If every fetch fails 3 runs in a row it sends you an ops alert instead of
+dying silently.
 
-## Configuration
+## Alert channels
 
-The Cineplex Notifier application requires the following environment variables to be set. You can set these variables in the `docker-compose.yml` file:
+- **ntfy push (recommended — this is the "on the minute" channel):**
+  install the [ntfy](https://ntfy.sh) app, subscribe to a topic you invent
+  (make it unguessable, e.g. `dune3-rk-x8k2p9`), set `NTFY_TOPIC` to it.
+  Tapping the notification opens the booking link directly.
+- **Email:** set `EMAIL` (Gmail) + `PASSWORD`
+  ([Gmail app password](https://support.google.com/accounts/answer/185833),
+  not your normal password). `EMAIL_TO` defaults to the sender.
+- **SMS (best-effort):** `PHONE=4165551234:Telus` via carrier
+  email-to-SMS gateways. Canadian carriers have been retiring these
+  (Rogers/Fido are unreliable) — treat ntfy push as primary.
+  Supported: Virgin, Bell, MTS, Rogers, Telus, Fido, Freedom, Koodo, PC,
+  Sasktel.
 
-- `URL`: The URL of the upcoming movie at Cineplex. For example: `https://www.cineplex.com/movie/oppenheimer`.
-- `EMAIL`: The Gmail email address to be used as the sender's email in the SMTP server.
-- `PASSWORD`: The Gmail app password to send text messages via email from your email address to your phone. [MORE INFO](https://support.google.com/accounts/answer/185833)
-- `PHONE`: The phone number(s) and provider(s) to receive the notifications. Multiple phone numbers and providers can be specified, separated by commas. For example: `PHONE#1:PROVIDER1,PHONE#2:PROVIDER2`.
-Currently supported Canadian providers: Virgin, Bell, MTS, Rogers, Telus, Fido, Freedom, Koodoo, PC, Sasktel
+## Quick start
 
-## Usage
+```bash
+# 1. edit the environment block in docker-compose.yml (EMAIL, PASSWORD, NTFY_TOPIC)
+make build
+make run          # starts the container; first check runs immediately
 
-Follow the steps below to run the Cineplex Notifier application:
+# 2. verify the alert pipeline end-to-end (sends a real test alert):
+docker compose run --rm cinealert python /app/main.py --test-alert
 
-1. Update the environment variables in the `docker-compose.yml` file with your specific values.
+# 3. watch it work
+tail -f logs/main.log
+```
 
-2. Build the Docker image:
+## Configuration (docker-compose.yml)
 
-   ```
-   make build
-   ```
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `MOVIE_URL` | dune-part-three page | Cineplex movie page (used in alerts + discovery) |
+| `THEATRE_URL` | cineplex-cinemas-vaughan page | theatre to watch (drives API discovery) |
+| `FILM_KEYWORD` | `dune` | substring the film name must contain |
+| `EXPERIENCE_KEYWORDS` | `70mm` | comma list; every keyword must appear in the session's experience labels. Empty = all formats |
+| `WATCH_FROM` / `WATCH_TO` | `2026-12-18` / `2027-01-03` | show dates to scan |
+| `EMAIL` / `PASSWORD` / `EMAIL_TO` | — | Gmail sender / app password / recipients |
+| `NTFY_TOPIC` | — | ntfy.sh push topic |
+| `PHONE` | — | `number:provider,...` (optional) |
+| `LOCATION_ID` / `CPX_API_KEY` | auto | manual overrides if you ever want to skip discovery |
 
-3. Run the application:
-   ```
-   make run
-   ```
-   The Cineplex Notifier will start monitoring the specified movie URL, and you will receive alerts when ticket booking starts. 
+## Debugging
 
-4. To stop the application:
-   ```
-   make stop
-   ```
-5. To purge the running container and remove it:
-   ```
-   make purge
-   ```
+```bash
+# force API re-discovery (e.g. after Cineplex changes something):
+docker compose run --rm cinealert python /app/main.py --discover --dry-run
+
+# dump the raw API payloads to state/last_payloads.json:
+docker compose run --rm cinealert python /app/main.py --dump-raw --dry-run
+
+# replay a saved payload through the detection logic without network:
+python main.py --simulate tests/fixture_showtimes.json --dry-run
+```
+
+## Useful links (Dune 3 / Vaughan)
+
+- Movie page: <https://www.cineplex.com/movie/dune-part-three>
+- Theatre page: <https://www.cineplex.com/theatre/cineplex-cinemas-vaughan>
+- IMAX's own listing for the same screen:
+  <https://www.imax.com/theatre/cineplex-cinemas-vaughan-imax/dune-part-three>
+
 ## License
 
-This project is licensed under the MIT License.
-
-## Contact
-
-For any questions, suggestions, or contributions, please feel free to contact us:
-
-**Project Maintainer:** Akash Parmar \
-**Email:** akashparmarsoftware@gmail.com \
-**GitHub:** [CreatorSky](https://github.com/creatorsky)
-
-We welcome any feedback and appreciate your interest in contributing to the project!
+MIT.

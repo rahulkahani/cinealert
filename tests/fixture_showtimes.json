@@ -1,0 +1,89 @@
+[
+  {
+    "locationId": 1406,
+    "locationName": "Cineplex Cinemas Vaughan",
+    "dates": [
+      {
+        "showDate": "2026-12-18T00:00:00",
+        "movies": [
+          {
+            "filmId": 34472,
+            "filmName": "Dune: Part Three",
+            "movieUrl": "https://www.cineplex.com/movie/dune-part-three",
+            "experiences": [
+              {
+                "experienceTypes": ["IMAX", "70MM FILM"],
+                "sessions": [
+                  {
+                    "vistaSessionId": 610001,
+                    "showStartDateTime": "2026-12-18T19:00:00",
+                    "isSoldOut": true,
+                    "seatsRemaining": 0
+                  },
+                  {
+                    "vistaSessionId": 610002,
+                    "showStartDateTime": "2026-12-18T23:00:00",
+                    "isSoldOut": true,
+                    "seatsRemaining": 0
+                  }
+                ]
+              },
+              {
+                "experienceTypes": ["IMAX"],
+                "sessions": [
+                  {
+                    "vistaSessionId": 610003,
+                    "showStartDateTime": "2026-12-18T15:00:00",
+                    "isSoldOut": false,
+                    "seatsRemaining": 210
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "filmId": 90001,
+            "filmName": "Some Other Movie",
+            "movieUrl": "https://www.cineplex.com/movie/some-other-movie",
+            "experiences": [
+              {
+                "experienceTypes": ["IMAX", "70MM FILM"],
+                "sessions": [
+                  {
+                    "vistaSessionId": 610004,
+                    "showStartDateTime": "2026-12-18T12:00:00",
+                    "isSoldOut": false,
+                    "seatsRemaining": 100
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "showDate": "2026-12-19T00:00:00",
+        "movies": [
+          {
+            "filmId": 34472,
+            "filmName": "Dune: Part Three",
+            "movieUrl": "https://www.cineplex.com/movie/dune-part-three",
+            "experiences": [
+              {
+                "experienceTypes": ["IMAX", "70MM FILM"],
+                "sessions": [
+                  {
+                    "vistaSessionId": 610005,
+                    "showStartDateTime": "2026-12-19T19:00:00",
+                    "isSoldOut": true,
+                    "seatsRemaining": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

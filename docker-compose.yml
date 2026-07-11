@@ -1,11 +1,32 @@
-version: '3'
 services:
-  cineplex-notifier:
+  cinealert:
     build:
       context: .
-    image: cineplex-notifier
+    image: cinealert
+    restart: unless-stopped
     environment:
-      - URL=https://www.cineplex.com/movie/oppenheimer
-      - EMAIL=<enter_email_here>
-      - PASSWORD=<enter_app_password_here>
-      - PHONE=<enter_phone:provider_here>
+      # --- what to watch -------------------------------------------------
+      - MOVIE_URL=https://www.cineplex.com/movie/dune-part-three
+      - THEATRE_URL=https://www.cineplex.com/theatre/cineplex-cinemas-vaughan
+      - FILM_KEYWORD=dune
+      - EXPERIENCE_KEYWORDS=70mm
+      - WATCH_FROM=2026-12-18
+      - WATCH_TO=2027-01-03
+      # --- how to alert you ----------------------------------------------
+      # Gmail sender + app password (https://support.google.com/accounts/answer/185833)
+      - EMAIL=<your_gmail_here>
+      - PASSWORD=<gmail_app_password_here>
+      # who receives the alert email (defaults to EMAIL if left empty)
+      - EMAIL_TO=
+      # ntfy.sh push topic — install the ntfy app, subscribe to this topic.
+      # Pick something long/unguessable, e.g. dune3-rahul-x8k2p9
+      - NTFY_TOPIC=
+      # optional email-to-SMS, e.g. 4165551234:Telus (carriers are killing
+      # these gateways; ntfy push is far more reliable)
+      - PHONE=
+      # --- advanced (usually leave empty; auto-discovered) ----------------
+      - LOCATION_ID=
+      - CPX_API_KEY=
+    volumes:
+      - ./state:/app/state
+      - ./logs:/app/logs
