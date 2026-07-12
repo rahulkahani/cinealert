@@ -1,3 +1,7 @@
+# `version` is obsolete on Compose v2 (harmless warning) but keeps this
+# file working on older docker-compose 1.x installs.
+version: "3"
+
 services:
   cinealert:
     build:
