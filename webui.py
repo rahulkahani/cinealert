@@ -37,8 +37,11 @@ FIELDS = [
      "subscribe to this exact topic)", "dune3-rk-x8k2p9", "text"),
     ("PHONE", "Text message (SMS): number:Provider pairs, comma separated",
      "4165551234:Telus", "text"),
-    ("WATCH_FROM", "Watch show dates from (YYYY-MM-DD)", "2026-12-18", "text"),
-    ("WATCH_TO", "Watch show dates until (YYYY-MM-DD)", "2027-01-03", "text"),
+    ("WATCH_FROM", "Earliest SHOW date you'd attend (YYYY-MM-DD). These are "
+     "movie dates, not release dates — the watcher itself checks 24/7 from "
+     "now on, so whenever tickets drop, you're covered", "2026-12-18", "text"),
+    ("WATCH_TO", "Latest SHOW date you'd attend (YYYY-MM-DD)", "2027-01-03",
+     "text"),
     ("FILM_KEYWORD", "Film name must contain", "dune", "text"),
     ("EXPERIENCE_KEYWORDS", "Format must contain (comma separated; empty = "
      "every format)", "70mm", "text"),
