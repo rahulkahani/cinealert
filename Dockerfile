@@ -31,5 +31,7 @@ RUN mkdir -p /app/logs /app/state && touch /app/logs/main.log
 RUN dos2unix /app/entrypoint.sh /app/run.sh \
     && chmod 755 /app/entrypoint.sh /app/run.sh
 
+EXPOSE 8080
+
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["cron", "-f"]

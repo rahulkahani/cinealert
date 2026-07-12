@@ -4,6 +4,10 @@ services:
       context: .
     image: cinealert
     restart: unless-stopped
+    ports:
+      # config web UI — open http://localhost:8080 after `make run`.
+      # Everything below can be set there instead of in this file.
+      - "8080:8080"
     environment:
       # --- what to watch -------------------------------------------------
       - MOVIE_URL=https://www.cineplex.com/movie/dune-part-three

@@ -37,43 +37,70 @@ OPS_ALERT_AFTER_FAILURES = 3
 OPS_ALERT_COOLDOWN_HOURS = 6
 
 
+def _load_file_config(state_dir: str) -> dict:
+    """Settings saved by the web UI (state/config.json)."""
+    try:
+        with open(os.path.join(state_dir, "config.json"), encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, ValueError, OSError):
+        return {}
+
+
 class Config:
     def __init__(self, args):
         env = os.environ.get
+        self.state_dir = env("STATE_DIR", os.path.join(os.path.dirname(
+            os.path.abspath(__file__)), "state"))
+        file_cfg = _load_file_config(self.state_dir)
 
-        self.movie_url = args.url or env("MOVIE_URL") or env("URL") or \
+        def pick(arg_val, key, default=""):
+            """CLI flag > web-UI config.json > environment > default.
+
+            A key present-but-empty in config.json is an explicit 'unset'
+            (the UI cleared it) and does NOT fall through to the env.
+            Values containing '<' are docker-compose placeholders.
+            """
+            if arg_val:
+                return str(arg_val).strip()
+            if key in file_cfg:
+                v = str(file_cfg[key] or "").strip()
+                return v if "<" not in v else ""
+            v = env(key, "")
+            return v.strip() if v and "<" not in v else default
+
+        self.movie_url = pick(args.url, "MOVIE_URL") or env("URL", "").strip() or \
             "https://www.cineplex.com/movie/dune-part-three"
-        self.theatre_url = args.theatre_url or env("THEATRE_URL") or \
+        self.theatre_url = pick(args.theatre_url, "THEATRE_URL") or \
             "https://www.cineplex.com/theatre/cineplex-cinemas-vaughan"
-        self.film_keyword = args.film_keyword or env("FILM_KEYWORD", "dune")
+        self.film_keyword = pick(args.film_keyword, "FILM_KEYWORD", "dune")
         self.experience_keywords = [
-            k for k in (args.experience or env("EXPERIENCE_KEYWORDS", "70mm")).split(",")
+            k for k in pick(args.experience, "EXPERIENCE_KEYWORDS", "70mm").split(",")
             if k.strip()
         ]
         self.watch_from = date.fromisoformat(
-            args.watch_from or env("WATCH_FROM", "2026-12-18"))
+            pick(args.watch_from, "WATCH_FROM") or "2026-12-18")
         self.watch_to = date.fromisoformat(
-            args.watch_to or env("WATCH_TO", "2027-01-03"))
+            pick(args.watch_to, "WATCH_TO") or "2027-01-03")
         self.timezone = env("TZ_NAME", "America/Toronto")
 
-        self.email = args.email or env("EMAIL", "")
-        self.password = args.password or env("PASSWORD", "")
+        self.email = pick(args.email, "EMAIL")
+        self.password = pick(args.password, "PASSWORD")
         self.email_to = [
             e.strip()
-            for e in (args.email_to or env("EMAIL_TO", "") or self.email).split(",")
+            for e in (pick(args.email_to, "EMAIL_TO") or self.email).split(",")
             if e.strip()
         ]
         self.phone_pairs = [
-            p.strip() for p in (args.phone or env("PHONE", "")).split(",") if p.strip()
+            p.strip() for p in pick(args.phone, "PHONE").split(",") if p.strip()
         ]
-        self.ntfy_topic = args.ntfy_topic or env("NTFY_TOPIC", "")
+        self.ntfy_topic = pick(args.ntfy_topic, "NTFY_TOPIC")
+        self.use_deeplinks = pick(None, "USE_DEEPLINKS", "true").lower() \
+            in ("1", "true", "yes", "on")
 
-        self.location_id = env("LOCATION_ID", "")
-        self.api_key = env("CPX_API_KEY", "")
+        self.location_id = pick(None, "LOCATION_ID")
+        self.api_key = pick(None, "CPX_API_KEY")
         self.movie_slug = env("MOVIE_SLUG", "") or \
             self.movie_url.rstrip("/").rsplit("/", 1)[-1]
-        self.state_dir = env("STATE_DIR", os.path.join(os.path.dirname(
-            os.path.abspath(__file__)), "state"))
         self.request_delay = float(env("REQUEST_DELAY", "0.5"))
 
     def validate(self, need_credentials=True):
@@ -121,6 +148,8 @@ def watch_dates(cfg):
 
 
 def booking_link(session, cfg, location_id):
+    if not cfg.use_deeplinks:
+        return cfg.movie_url
     if session.get("deeplink"):
         return session["deeplink"]
     location = session.get("location_id") or location_id
@@ -134,11 +163,25 @@ def format_sessions(sessions, cfg, location_id):
     for s in sorted(sessions, key=lambda x: x["start"]):
         day = datetime.fromisoformat(s["start"]).strftime("%a %b %d, %Y")
         exp = ", ".join(s["experiences"]) or "unlabeled"
-        status = "SOLD OUT" if s["sold_out"] else (
-            f"{s['seats']} seats" if s.get("seats") is not None else "available")
-        lines.append(f"• {day} — {s['time']} ({exp}) — {status}")
-        lines.append(f"  Book: {booking_link(s, cfg, location_id)}")
+        if s["sold_out"]:
+            lines.append(f"• {day} — {s['time']} ({exp}) — ❌ SOLD OUT")
+            lines.append("  (no seats right now — you'll get a SEATS BACK "
+                         "alert if any free up)")
+        else:
+            status = (f"{s['seats']} seats left" if s.get("seats") is not None
+                      else "seats available")
+            lines.append(f"• {day} — {s['time']} ({exp}) — ✅ {status}")
+            lines.append(f"  Book now: {booking_link(s, cfg, location_id)}")
     return "\n".join(lines)
+
+
+def best_click_url(sessions, cfg, location_id):
+    """Deep link of the earliest bookable session, else the movie page."""
+    available = [s for s in sorted(sessions, key=lambda x: x["start"])
+                 if not s["sold_out"]]
+    if available:
+        return booking_link(available[0], cfg, location_id)
+    return cfg.movie_url
 
 
 def dates_summary(sessions):
@@ -285,17 +328,19 @@ def main(argv=None):
             if new:
                 parts.append(f"🚨 NEW SHOWTIMES RELEASED ({len(new)}):\n"
                              f"{format_sessions(new, cfg, location_id)}")
-                bits.append(f"{len(new)} new showtimes ({dates_summary(new)})")
+                plural = "s" if len(new) != 1 else ""
+                bits.append(f"{len(new)} new showtime{plural} ({dates_summary(new)})")
             if freed:
                 parts.append(f"🎟️ SEATS BACK ON SOLD-OUT SHOWS ({len(freed)}):\n"
                              f"{format_sessions(freed, cfg, location_id)}")
-                bits.append(f"{len(freed)} sold-out shows freed ({dates_summary(freed)})")
+                plural = "s" if len(freed) != 1 else ""
+                bits.append(f"seats back on {len(freed)} sold-out "
+                            f"show{plural} ({dates_summary(freed)})")
             summary = " & ".join(bits)
             subject = f"DUNE 3 IMAX 70mm @ Vaughan: {summary}"
-            first = sorted(new or freed, key=lambda s: s["start"])[0]
-            click = booking_link(first, cfg, location_id)
+            click = best_click_url(new + freed, cfg, location_id)
             body = "\n\n".join(parts) + (
-                f"\n\nMovie page: {cfg.movie_url}"
+                f"\n\nAll showtimes / backup link: {cfg.movie_url}"
                 f"\nTheatre page: {cfg.theatre_url}"
                 f"\nGO GO GO — these sell out in minutes."
             )

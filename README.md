@@ -23,10 +23,13 @@ Every **5 minutes** (cron inside the container):
    - **new showtimes released** → alert
    - **previously sold-out show has seats again** → alert
    - nothing changed → stays silent
-4. Alerts carry a **direct booking deep link per showtime** that opens the
-   seat-selection page on cineplex.com (and is understood by the Cineplex
-   app on phones):
+4. Shows **with seats** get a "Book now" deep link — Cineplex's own
+   redirect (the same one they use in their marketing links), which opens
+   that showtime's booking page on cineplex.com / in the Cineplex app:
    `https://apis.cineplex.com/prod/cpx/theatrical/deeplink?s=<session>&a=0000000001&l=<location>&m=dune-part-three&ss=False`
+   Sold-out shows are listed as SOLD OUT with no booking link. Every alert
+   also carries the plain movie-page URL as a backup, and you can disable
+   deep links entirely in the UI if you prefer plain cineplex.com links.
 
 On its very first successful run it emails you a **baseline** listing the
 currently posted 70mm showtimes (even the sold-out ones) — that's your
@@ -53,16 +56,19 @@ dying silently.
 ## Quick start
 
 ```bash
-# 1. edit the environment block in docker-compose.yml (EMAIL, PASSWORD, NTFY_TOPIC)
 make build
 make run          # starts the container; first check runs immediately
-
-# 2. verify the alert pipeline end-to-end (sends a real test alert):
-docker compose run --rm cinealert python /app/main.py --test-alert
-
-# 3. watch it work
-tail -f logs/main.log
 ```
+
+Then open **http://localhost:8080** — a small config page where you enter
+your Gmail, app password, ntfy topic, phone number, dates, etc. (no file
+editing needed; settings are stored in `state/config.json` and picked up
+by the next check). The page also has **Send test alert** and **Run a
+check right now** buttons plus live status and logs.
+
+The UI has no login — it's for your home network only; don't port-forward
+it. You can still set everything via the `environment:` block in
+`docker-compose.yml` instead; values saved in the UI take precedence.
 
 ## Configuration (docker-compose.yml)
 
