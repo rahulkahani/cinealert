@@ -40,16 +40,20 @@ dying silently.
 
 ## Alert channels
 
-- **ntfy push (recommended — this is the "on the minute" channel):**
-  install the [ntfy](https://ntfy.sh) app, subscribe to a topic you invent
-  (make it unguessable, e.g. `dune3-rk-x8k2p9`), set `NTFY_TOPIC` to it.
-  Tapping the notification opens the booking link directly.
-- **Email:** set `EMAIL` (Gmail) + `PASSWORD`
-  ([Gmail app password](https://support.google.com/accounts/answer/185833),
-  not your normal password). `EMAIL_TO` defaults to the sender.
-- **SMS (best-effort):** `PHONE=4165551234:Telus` via carrier
-  email-to-SMS gateways. Canadian carriers have been retiring these
-  (Rogers/Fido are unreliable) — treat ntfy push as primary.
+- **ntfy push (recommended — no account or password needed):** install the
+  [ntfy](https://ntfy.sh) app, subscribe to a topic you invent (make it
+  unguessable, e.g. `dune3-rk-x8k2p9`), set `NTFY_TOPIC` to it. Tapping
+  the notification opens the booking link directly. Set `NTFY_EMAIL` to
+  also get the alert in your inbox via ntfy — still no Gmail credentials
+  (ntfy.sh limits these to a few emails/day, plenty for release alerts).
+- **Gmail (optional):** only needed for SMS or unlimited email volume.
+  Set `EMAIL` + `PASSWORD` — that's a
+  [Gmail app password](https://support.google.com/accounts/answer/185833),
+  a separate revocable 16-character code, **not** your Gmail password.
+  `EMAIL_TO` defaults to the sender.
+- **SMS (best-effort, requires the Gmail fields):** `PHONE=4165551234:Telus`
+  via carrier email-to-SMS gateways. Canadian carriers have been retiring
+  these (Rogers/Fido are unreliable) — treat ntfy push as primary.
   Supported: Virgin, Bell, MTS, Rogers, Telus, Fido, Freedom, Koodo, PC,
   Sasktel.
 

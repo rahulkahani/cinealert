@@ -94,6 +94,7 @@ class Config:
             p.strip() for p in pick(args.phone, "PHONE").split(",") if p.strip()
         ]
         self.ntfy_topic = pick(args.ntfy_topic, "NTFY_TOPIC")
+        self.ntfy_email = pick(None, "NTFY_EMAIL")
         self.use_deeplinks = pick(None, "USE_DEEPLINKS", "true").lower() \
             in ("1", "true", "yes", "on")
 
@@ -110,8 +111,8 @@ class Config:
             raise ValueError("WATCH_TO is before WATCH_FROM.")
         if need_credentials and not (self.email and self.password) and not self.ntfy_topic:
             raise ValueError(
-                "No alert channel configured: set EMAIL + PASSWORD (Gmail app "
-                "password) and/or NTFY_TOPIC."
+                "No alert channel configured: set NTFY_TOPIC (no account "
+                "needed) and/or EMAIL + PASSWORD (Gmail app password)."
             )
 
 
@@ -197,7 +198,8 @@ def send_all(cfg, subject, body, sms_text, click_url, dry_run,
         return True
     sent = False
     if cfg.ntfy_topic:
-        sent |= send_ntfy(cfg.ntfy_topic, subject, body, click_url)
+        sent |= send_ntfy(cfg.ntfy_topic, subject, body, click_url,
+                          email=cfg.ntfy_email)
     if cfg.email and cfg.password:
         sent |= send_email(cfg.email, cfg.password, cfg.email_to, subject, body)
         if include_sms and cfg.phone_pairs:

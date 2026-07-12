@@ -27,16 +27,23 @@ LOG_PATH = os.environ.get("LOG_PATH", os.path.join(APP_DIR, "logs", "main.log"))
 app = Flask(__name__)
 
 FIELDS = [
-    ("EMAIL", "Gmail address (sends the alerts)", "you@gmail.com", "email"),
-    ("PASSWORD", "Gmail app password (not your normal password — "
-     "myaccount.google.com → Security → App passwords)", "abcd efgh ijkl mnop",
-     "password"),
-    ("EMAIL_TO", "Send alert emails to (comma separated; empty = same as above)",
-     "", "text"),
-    ("NTFY_TOPIC", "ntfy push topic (recommended — install the ntfy app and "
-     "subscribe to this exact topic)", "dune3-rk-x8k2p9", "text"),
-    ("PHONE", "Text message (SMS): number:Provider pairs, comma separated",
-     "4165551234:Telus", "text"),
+    ("NTFY_TOPIC", "ntfy push topic — the easy, no-password channel: install "
+     "the free ntfy app, subscribe to a topic you invent (make it "
+     "unguessable), type the same topic here", "dune3-rk-x8k2p9", "text"),
+    ("NTFY_EMAIL", "Also send alerts to this email via ntfy (optional — no "
+     "Gmail password needed; limited to a few emails/day, fine for alerts)",
+     "you@gmail.com", "email"),
+    ("EMAIL", "OPTIONAL Gmail sender — only needed for SMS texts or "
+     "unlimited email. Leave empty if ntfy above is enough", "you@gmail.com",
+     "email"),
+    ("PASSWORD", "OPTIONAL Gmail app password — a separate, revocable "
+     "16-character code, NOT your Gmail password "
+     "(myaccount.google.com → Security → App passwords)",
+     "abcd efgh ijkl mnop", "password"),
+    ("EMAIL_TO", "Send alert emails to (comma separated; empty = same as "
+     "the Gmail sender)", "", "text"),
+    ("PHONE", "Text message (SMS): number:Provider pairs, comma separated "
+     "(needs the Gmail fields above)", "4165551234:Telus", "text"),
     ("WATCH_FROM", "Earliest SHOW date you'd attend (YYYY-MM-DD). These are "
      "movie dates, not release dates — the watcher itself checks 24/7 from "
      "now on, so whenever tickets drop, you're covered", "2026-12-18", "text"),

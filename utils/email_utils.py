@@ -60,8 +60,14 @@ def send_sms(sender: str, password: str, phone_provider_pairs: List[str],
     return send_email(sender, password, addresses, "", text[:300])
 
 
-def send_ntfy(topic: str, title: str, body: str, click_url: str = "") -> bool:
-    """Push notification via ntfy.sh — instant, free, works on iOS/Android."""
+def send_ntfy(topic: str, title: str, body: str, click_url: str = "",
+              email: str = "") -> bool:
+    """Push notification via ntfy.sh — instant, free, works on iOS/Android.
+
+    If `email` is set, ntfy also forwards the alert to that inbox — no
+    Gmail credentials needed (ntfy.sh rate-limits emails to a handful per
+    day, plenty for release alerts).
+    """
     if not topic:
         return False
     headers = {
@@ -71,6 +77,8 @@ def send_ntfy(topic: str, title: str, body: str, click_url: str = "") -> bool:
     }
     if click_url:
         headers["Click"] = click_url
+    if email:
+        headers["Email"] = email
     try:
         resp = requests.post(
             f"https://ntfy.sh/{topic}", data=body.encode("utf-8"),
